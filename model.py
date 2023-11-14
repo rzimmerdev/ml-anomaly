@@ -1,36 +1,81 @@
 import torch
-import torch.nn as nn
+import torchmetrics
+from torch import nn
+import lightning
 
-class MultiClassAnomaly(nn.Module):
-    def __init__(self, input_size, hidden_size, num_heads, num_layers, num_classes, dropout_rate=0.1):
-        super(MultiClassAnomaly, self).__init__()
+
+class MultiClassAnomaly(lightning.LightningModule):
+    def __init__(self, input_size, hidden_size, num_heads, num_layers, num_classes, dropout_rate=0.5):
+        super().__init__()
+        self.accuracy = torchmetrics.Accuracy(task='multiclass', num_classes=num_classes)
 
         self.cnn = nn.Sequential(
-            nn.Conv1d(in_channels=input_size, out_channels=hidden_size, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool1d(kernel_size=2)
+            nn.Sequential(
+                nn.Conv1d(input_size, hidden_size, kernel_size=3, padding=1),
+                nn.BatchNorm1d(hidden_size),
+                nn.ReLU(),
+                nn.MaxPool1d(2),
+            ),
+            nn.Sequential(
+                nn.Conv1d(hidden_size, hidden_size, kernel_size=3, padding=1),
+                nn.BatchNorm1d(hidden_size),
+                nn.ReLU(),
+                nn.MaxPool1d(2),
+            )
         )
 
-        self.embedding = nn.Linear(hidden_size, hidden_size)
-        self.transformer_encoder = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(d_model=hidden_size, nhead=num_heads),
+        self.transformer = nn.TransformerEncoder(
+            nn.TransformerEncoderLayer(
+                d_model=hidden_size,
+                nhead=num_heads,
+                dim_feedforward=hidden_size,
+                dropout=dropout_rate,
+                activation='relu'
+            ),
             num_layers=num_layers
         )
 
-        self.fc = nn.Linear(hidden_size, num_classes)
-
-        self.dropout = nn.Dropout(p=dropout_rate)
+        self.classifier = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate),
+            nn.Linear(hidden_size, num_classes)
+        )
 
     def forward(self, x):
-        x = self.cnn(x)
         x = x.permute(0, 2, 1)
-        x = self.embedding(x)
+        x = self.cnn(x)
+        x = x.permute(2, 0, 1)
+        x = self.transformer(x)
+        x = x.permute(1, 0, 2)
+        x = x[:, -1, :]
+        x = self.classifier(x)
+        return x
 
-        x = self.transformer_encoder(x)
-        x = x.mean(dim=1)
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self.forward(x)
+        loss = nn.functional.cross_entropy(logits, y)
+        self.log('train_loss', loss, on_epoch=True, on_step=True)
+        return loss
 
-        x = self.dropout(x)
-        output = self.fc(x)
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self.forward(x)
+        loss = nn.functional.cross_entropy(logits, y)
+        acc = self.accuracy(logits, y)
+        self.log('val_loss', loss, on_epoch=True, on_step=False)
+        self.log('val_accuracy', acc, on_epoch=True, on_step=False)
+        return loss
 
-        return output
+    def test_step(self, batch, batch_idx):
+        x, y = batch
+        logits = self.forward(x)
+        loss = nn.functional.cross_entropy(logits, y)
+        acc = self.accuracy(logits, y)
+        self.log('test_loss', loss, on_epoch=True, on_step=False)
+        self.log('test_accuracy', acc, on_epoch=True, on_step=False)
+        return loss
 
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=0.001)

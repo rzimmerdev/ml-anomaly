@@ -3,6 +3,11 @@ Time Series Multi-class Anomaly detection using a Hybrid Transformer/CNN for phy
 
 ## Installation
 ```bash
-pip install -r requirements.txt
+conda create -n ml-anomaly --file requirements.txt python=3.10
 ```
 
+## Usage
+```bash
+conda activate ml-anomaly
+python test.py
+```

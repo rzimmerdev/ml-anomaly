@@ -5,6 +5,9 @@ from src.model import MultiClassAnomaly
 from src.dataset import SeriesDataset
 
 
+from plotly import express as px
+
+
 def test(args):
     checkpoint = torch.load(args.checkpoint_path)
     hyperparams = checkpoint['hyperparameters']
@@ -24,8 +27,9 @@ def test(args):
     dataset = SeriesDataset(args.data_dir)
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
 
-    trainer = lightning.Trainer(default_root_dir=args['checkpoint_dir'], max_epochs=args['epochs'])
-    trainer.test(model=model, dataloaders=dataloader)
+    trainer = lightning.Trainer(default_root_dir=hyperparams['checkpoint_dir'], max_epochs=hyperparams['max_epochs'])
+
+    metrics = trainer.test(model=model, dataloaders=dataloader)
 
 
 if __name__ == '__main__':
@@ -35,7 +39,7 @@ if __name__ == '__main__':
     parser.add_argument('--checkpoint_path', type=str, default="checkpoints/model_checkpoint.pth",
                         help='Path to the model checkpoint file')
     parser.add_argument('--batch_size', type=int, default=8, help='Batch size for testing')
-    parser.add_argument('--data_dir', type=str, default="Sara_dataset/test", help='Dataset directory for loading series')
+    parser.add_argument('--data_dir', type=str, default="data/test", help='Dataset directory for loading series')
 
     args = parser.parse_args()
     test(args)

@@ -78,3 +78,8 @@ urllib3=2.1.0=pypi_0
 wheel=0.41.3=pyhd8ed1ab_0
 xz=5.2.6=h166bdaf_0
 yarl=1.9.2=pypi_0
+lightning~=2.1.1
+torch~=2.1.0
+plotly~=5.18.0
+torchmetrics~=1.2.0
+pandas~=1.5.3

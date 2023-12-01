@@ -50,7 +50,7 @@ class MultiClassAnomaly(lightning.LightningModule):
         x = x.permute(1, 0, 2)
         x = x[:, -1, :]
         x = self.classifier(x)
-        return x
+        return nn.functional.softmax(x, dim=1)
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -72,7 +72,9 @@ class MultiClassAnomaly(lightning.LightningModule):
         x, y = batch
         logits = self.forward(x)
         loss = nn.functional.cross_entropy(logits, y)
-        acc = self.accuracy(logits, y)
+        pred = torch.argmax(logits, dim=1)
+        y = torch.argmax(y, dim=1)
+        acc = self.accuracy(pred, y)
         self.log('test_loss', loss, on_epoch=True, on_step=False)
         self.log('test_accuracy', acc, on_epoch=True, on_step=False)
         return loss

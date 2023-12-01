@@ -1,3 +1,6 @@
 checkpoints/
 lightning_logs/
-Sara_dataset/
+data/Sara_dataset/
+
+.vscode
+.idea

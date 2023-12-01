@@ -4,8 +4,8 @@ import torch
 from torch.utils.data import DataLoader
 import lightning
 
-from model import MultiClassAnomaly
-from dataset import SeriesDataset
+from src.model import MultiClassAnomaly
+from src.dataset import SeriesDataset
 
 
 def train(args):

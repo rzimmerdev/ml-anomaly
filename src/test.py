@@ -1,8 +1,8 @@
 import lightning
 import torch
 from torch.utils.data import DataLoader
-from model import MultiClassAnomaly
-from dataset import SeriesDataset
+from src.model import MultiClassAnomaly
+from src.dataset import SeriesDataset
 
 
 def test(args):

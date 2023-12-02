@@ -7,7 +7,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY checkpoints/model_checkpoint.pth checkpoints/
+COPY checkpoints/model_checkpoint.pth checkpoints/model_checkpoint.pth
 COPY data/test data/test
 
 COPY src/ src/

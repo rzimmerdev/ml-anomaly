@@ -4,3 +4,8 @@ data/*
 
 .vscode
 .idea
+
+OS: Ubuntu Cinnamon 22.04.3 LTS x86
+CPU: AMD Ryzen 7 5700G with Radeon G
+GPU: NVIDIA GeForce GTX 1080
+Memory: 31950MiB

@@ -1,8 +1,8 @@
 import lightning
 import torch
 from torch.utils.data import DataLoader
-from src.model import MultiClassAnomaly
-from src.dataset import SeriesDataset
+from model import MultiClassAnomaly
+from dataset import SeriesDataset
 
 
 from plotly import express as px
@@ -29,7 +29,11 @@ def test(args):
 
     trainer = lightning.Trainer(default_root_dir=hyperparams['checkpoint_dir'], max_epochs=hyperparams['max_epochs'])
 
-    metrics = trainer.test(model=model, dataloaders=dataloader)
+    trainer.test(model=model, dataloaders=dataloader)
+
+    confusion_matrix = model.confusion_matrix
+    heatmap = px.imshow(confusion_matrix, labels=dict(x="Predicted", y="Actual", color="Count"), text_auto=True)
+    heatmap.show()
 
 
 if __name__ == '__main__':

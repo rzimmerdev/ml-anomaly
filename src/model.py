@@ -11,6 +11,7 @@ class MultiClassAnomaly(lightning.LightningModule):
 
         self.num_classes = num_classes
         self.confusion_matrix = torch.zeros(num_classes, num_classes)
+        self.roc_curve = torchmetrics.ROC('multiclass', num_classes=num_classes)
 
         self.cnn = nn.Sequential(
             nn.Sequential(
@@ -85,6 +86,17 @@ class MultiClassAnomaly(lightning.LightningModule):
         self.confusion_matrix = (self.confusion_matrix +
                                  torchmetrics.functional.confusion_matrix(pred.cpu(), y.cpu(), 'multiclass',
                                                                           num_classes=self.num_classes))
+
+        precision = torchmetrics.functional.precision(pred.cpu(), y.cpu(), 'multiclass', num_classes=self.num_classes)
+        recall = torchmetrics.functional.recall(pred.cpu(), y.cpu(), 'multiclass', num_classes=self.num_classes)
+
+        f1 = 2 * (precision * recall) / (precision + recall)
+
+        self.log('precision', precision, on_epoch=True, on_step=False)
+        self.log('recall', recall, on_epoch=True, on_step=False)
+        self.log('f1', f1, on_epoch=True, on_step=False)
+
+        self.roc_curve.update(logits, y)
 
         return loss
 

@@ -1,4 +1,5 @@
 import argparse
+import timeit
 
 import torch
 from torch.utils.data import DataLoader
@@ -19,8 +20,15 @@ def train(args):
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
 
-    trainer = lightning.Trainer(default_root_dir=args.checkpoint_dir, max_epochs=args.max_epochs)
-    trainer.fit(model=model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
+    trainer = lightning.Trainer(default_root_dir=args.checkpoint_dir, max_epochs=args.max_epochs, check_val_every_n_epoch=10)
+
+    # Measure training time
+    time = timeit.timeit(lambda: trainer.fit(model=model,
+                                             train_dataloaders=train_dataloader,
+                                             val_dataloaders=val_dataloader),
+                         number=1)
+
+    print(f'Training time: {time} seconds')
 
     checkpoint = {
         'hyperparameters': vars(args),

@@ -1,3 +1,5 @@
+import time
+
 import lightning
 import numpy as np
 import torch
@@ -32,12 +34,26 @@ def test(args):
     trainer.test(model=model, dataloaders=dataloader)
 
     confusion_matrix = model.confusion_matrix
-    heatmap = px.imshow(confusion_matrix, labels=dict(x="Predicted", y="Actual", color="Count"), text_auto=True)
-    heatmap.update_layout(title='Confusion Matrix',
-                          xaxis_nticks=5, yaxis_nticks=5,
-                          font=dict(size=24, family='Courier New, monospace'),
+
+    figure = "garbage_clean.pdf"
+    fig = px.scatter(x=[0], y=[0])
+    fig.write_image(figure, format="pdf")
+    time.sleep(2)
+
+    # Make x labels vertical
+    heatmap = px.imshow(
+        confusion_matrix,
+        labels=dict(x="Predicted", y="Actual", color="Count"),
+        text_auto=True,
+        x=['Normal', 'Left Up', 'Left Un.', 'Right Up', 'Right Un.'],
+        y=['Normal', 'Left Up', 'Left Un.', 'Right Up', 'Right Un.'],
+    )
+    heatmap.update_xaxes(tickangle=-90)
+    heatmap.update_layout(xaxis_nticks=5, yaxis_nticks=5,
+                          font=dict(size=32, family='Courier New, monospace'),
                           width=800, height=800)
-    heatmap.show()
+    # Save as PDF
+    heatmap.write_image("cm.pdf")
 
     # roc_curve is a tuple with 3 elements: (fpr, tpr, thresholds)
     # Each element is a list with num_classes elements
@@ -45,7 +61,6 @@ def test(args):
     fpr = roc_curve[0]
     tpr = roc_curve[1]
 
-    # Aggregated ROC curve
     mean_fpr = np.linspace(0, 1, 100)
     mean_tpr = np.zeros_like(mean_fpr)
 
@@ -56,12 +71,11 @@ def test(args):
 
     fig = px.line(x=mean_fpr, y=mean_tpr, labels=dict(x="False Positive Rate", y="True Positive Rate"))
 
-    # fixed 800x800 size
-    fig.update_layout(title='ROC Curve',
+    fig.update_layout(
                       xaxis_nticks=5, yaxis_nticks=5,
-                      font=dict(size=24, family='Courier New, monospace'),
-                      width=1200, height=800)
-    fig.show()
+                      font=dict(size=32, family='Courier New, monospace'),
+                      width=800, height=800)
+    fig.write_image("roc.pdf")
 
     auc = np.trapz(mean_tpr, mean_fpr)
     print(f'AUC: {auc}')

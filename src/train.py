@@ -1,8 +1,9 @@
 import argparse
+import os
 import timeit
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 import lightning
 
 from model import MultiClassAnomaly
@@ -20,7 +21,8 @@ def train(args):
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
 
-    trainer = lightning.Trainer(default_root_dir=args.checkpoint_dir, max_epochs=args.max_epochs, check_val_every_n_epoch=10)
+    trainer = lightning.Trainer(default_root_dir=args.checkpoint_dir, max_epochs=args.max_epochs,
+                                check_val_every_n_epoch=10)
 
     # Measure training time
     time = timeit.timeit(lambda: trainer.fit(model=model,
@@ -37,6 +39,37 @@ def train(args):
     torch.save(checkpoint, f'{args.checkpoint_dir}/model_checkpoint.pth')
 
 
+# Train oneclass
+def train_oneclass(args):
+    dataset = SeriesDataset(args.data_dir)
+    os.makedirs(f'{args.checkpoint_dir}/one_out', exist_ok=True)
+
+    for i in range(len(dataset)):
+        val_dataset = Subset(dataset, [i])
+        train_indices = list(range(0, i)) + list(range(i + 1, len(dataset)))
+        train_dataset = Subset(dataset, train_indices)
+
+        train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+        val_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=False)
+
+        model = MultiClassAnomaly(args.input_size, args.hidden_size, args.num_heads, args.num_layers, args.num_classes)
+        trainer = lightning.Trainer(default_root_dir=args.checkpoint_dir, max_epochs=args.max_epochs,
+                                    check_val_every_n_epoch=10)
+
+        time = timeit.timeit(lambda: trainer.fit(model=model,
+                                                 train_dataloaders=train_dataloader,
+                                                 val_dataloaders=val_dataloader),
+                             number=1)
+
+        print(f'Training time: {time} seconds')
+
+        checkpoint = {
+            'hyperparameters': vars(args),
+            'state_dict': model.state_dict(),
+        }
+        torch.save(checkpoint, f'{args.checkpoint_dir}/one_out/model_checkpoint_{i}.pth')
+
+
 def main():
     parser = argparse.ArgumentParser(description='CNN-Transformer Time Series Classification')
     parser.add_argument('--input_size', type=int, default=7, help='Number of input features')
@@ -49,9 +82,14 @@ def main():
     parser.add_argument('--checkpoint_dir', type=str, default="checkpoints/", help='Directory to save checkpoints')
     parser.add_argument('--resume_training', action='store_true', help='Resume training from checkpoint')
     parser.add_argument('--max_epochs', type=int, default=100, help='Number of epochs to train for')
+    parser.add_argument('--one_out', action='store_true', help='Train one-class model')
 
     args = parser.parse_args()
-    train(args)
+
+    if args.one_out:
+        train_oneclass(args)
+    else:
+        train(args)
 
 
 if __name__ == '__main__':

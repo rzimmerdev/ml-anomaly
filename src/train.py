@@ -44,7 +44,10 @@ def train_oneclass(args):
     dataset = SeriesDataset(args.data_dir)
     os.makedirs(f'{args.checkpoint_dir}/one_out', exist_ok=True)
 
+    validation_acc = []
+
     for i in range(len(dataset)):
+        print(f'Fold {i + 1}/{len(dataset)}')
         val_dataset = Subset(dataset, [i])
         train_indices = list(range(0, i)) + list(range(i + 1, len(dataset)))
         train_dataset = Subset(dataset, train_indices)
@@ -62,12 +65,9 @@ def train_oneclass(args):
                              number=1)
 
         print(f'Training time: {time} seconds')
+        validation_acc.append(trainer.callback_metrics['val_accuracy'].item())
 
-        checkpoint = {
-            'hyperparameters': vars(args),
-            'state_dict': model.state_dict(),
-        }
-        torch.save(checkpoint, f'{args.checkpoint_dir}/one_out/model_checkpoint_{i}.pth')
+    print(f'Validation accuracy: {sum(validation_acc) / len(validation_acc)}')
 
 
 def main():
@@ -82,7 +82,7 @@ def main():
     parser.add_argument('--checkpoint_dir', type=str, default="checkpoints/", help='Directory to save checkpoints')
     parser.add_argument('--resume_training', action='store_true', help='Resume training from checkpoint')
     parser.add_argument('--max_epochs', type=int, default=100, help='Number of epochs to train for')
-    parser.add_argument('--one_out', action='store_true', help='Train one-class model')
+    parser.add_argument('--one_out', type=bool, default=False, help='Train oneclass')
 
     args = parser.parse_args()
 

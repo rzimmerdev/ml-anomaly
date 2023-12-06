@@ -11,7 +11,7 @@ from dataset import SeriesDataset
 
 
 def train(args):
-    model = MultiClassAnomaly(args.input_size, args.hidden_size, args.num_heads, args.num_layers, args.num_classes)
+    model = MultiClassAnomaly(args.num_classes, args.input_size, args.hidden_size, args.num_heads, args.num_layers)
 
     dataset = SeriesDataset(args.data_dir)
 
@@ -40,9 +40,9 @@ def train(args):
 
 
 # Train oneclass
-def train_oneclass(args):
+def train_ensemble(args):
     dataset = SeriesDataset(args.data_dir)
-    os.makedirs(f'{args.checkpoint_dir}/one_out', exist_ok=True)
+    os.makedirs(f'{args.checkpoint_dir}/ensemble', exist_ok=True)
 
     validation_acc = []
 
@@ -55,7 +55,7 @@ def train_oneclass(args):
         train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
         val_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=False)
 
-        model = MultiClassAnomaly(args.input_size, args.hidden_size, args.num_heads, args.num_layers, args.num_classes)
+        model = MultiClassAnomaly(args.num_classes, args.input_size, args.hidden_size, args.num_heads, args.num_layers)
         trainer = lightning.Trainer(default_root_dir=args.checkpoint_dir, max_epochs=args.max_epochs,
                                     check_val_every_n_epoch=10)
 
@@ -63,6 +63,13 @@ def train_oneclass(args):
                                                  train_dataloaders=train_dataloader,
                                                  val_dataloaders=val_dataloader),
                              number=1)
+
+        checkpoint = {
+            'hyperparameters': vars(args),
+            'state_dict': model.state_dict(),
+        }
+
+        torch.save(checkpoint, f'{args.checkpoint_dir}/ensemble/fold_{i}.pth')
 
         print(f'Training time: {time} seconds')
         validation_acc.append(trainer.callback_metrics['val_accuracy'].item())
@@ -82,12 +89,12 @@ def main():
     parser.add_argument('--checkpoint_dir', type=str, default="checkpoints/", help='Directory to save checkpoints')
     parser.add_argument('--resume_training', action='store_true', help='Resume training from checkpoint')
     parser.add_argument('--max_epochs', type=int, default=100, help='Number of epochs to train for')
-    parser.add_argument('--one_out', type=bool, default=False, help='Train oneclass')
+    parser.add_argument('--ensemble', type=bool, default=False, help='Train k-fold ensemble')
 
     args = parser.parse_args()
 
-    if args.one_out:
-        train_oneclass(args)
+    if args.ensemble:
+        train_ensemble(args)
     else:
         train(args)
 

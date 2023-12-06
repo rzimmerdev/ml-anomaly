@@ -5,7 +5,7 @@ import lightning
 
 
 class MultiClassAnomaly(lightning.LightningModule):
-    def __init__(self, input_size, hidden_size, num_heads, num_layers, num_classes, dropout_rate=0.5):
+    def __init__(self, num_classes, input_size=500, hidden_size=512, num_heads=32, num_layers=4, dropout_rate=0.5):
         super().__init__()
         self.accuracy = torchmetrics.Accuracy(task='multiclass', num_classes=num_classes)
 
@@ -102,3 +102,13 @@ class MultiClassAnomaly(lightning.LightningModule):
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.001)
+
+
+class MultiClassEnsemble(MultiClassAnomaly):
+    def __init__(self, num_classes, ensemble):
+        super().__init__(num_classes)
+        self.ensemble = ensemble
+
+    def forward(self, x):
+        logits = torch.stack([model(x) for model in self.ensemble])
+        return torch.mean(logits, dim=0)

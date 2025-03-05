@@ -1,5 +1,5 @@
 # ml-anomaly
-This is the source code for the paper Machine Learning Techniques for Improving Multiclass Anomaly Detection. Provides an improvement on the existing dataset analysis paper Evaluating Conveyor Belt Health With Signal Processing Applied to Inertial Sensing
+This is the source code for the paper [Machine Learning Techniques for Improving Multiclass Anomaly Detection](https://doi.org/10.1109/I2MTC60896.2024.10561167). Provides an improvement on the existing dataset analysis paper Evaluating Conveyor Belt Health With Signal Processing Applied to Inertial Sensing
 
 ## Installation
 ```bash
